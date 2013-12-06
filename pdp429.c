@@ -161,8 +161,7 @@ void main( int argc, const char* argv[] ){
 		short keepOperating=TRUE;
 		int pcBefore;
 		int theInst;
-		char* commandName[WORD_COUNT_BITS*3];
-		while(keepOperating==TRUE){
+		while(psw&bitZero==1 && keepOperating==TRUE){
 			commandName[0]='\0';
 			regStr[0]='\0';
 			pc=pc&oneWord;
@@ -302,15 +301,15 @@ void printMem(){
 	printf("Finished printing memory:\n"); 
 }
 
-//return false if its a halt command, true otherwise
-int operate(int instruction, char* commandName){
+//return false if an error occurs true otherwise
+int operate(int instruction){
 	
 	
     switch(instruction & typeBuffer){
     	
 		//TYPE 1
 		case typeOne:
-		return doTypeOne(instruction, commandName);
+		return doTypeOne(instruction);
 		break;
 		
 		
@@ -361,27 +360,27 @@ int operate(int instruction, char* commandName){
 		
 		//TYPE 3
 		case typeThree:
-		doTypeThree(instruction, commandName);	
+		doTypeThree(instruction);	
 		break;
 		
 		//TYPE 4
 		case typeFourA:
-		doTypeFour(instruction, commandName);	
+		doTypeFour(instruction);	
 		break;
 			
 		//TYPE 4
 		case typeFourB:
-		doTypeFour(instruction, commandName);
+		doTypeFour(instruction);
 		break;
 		
 		//TYPE 5
 		case typeFive:
-		doTypeFive(instruction, commandName);
+		doTypeFive(instruction);
 		break;
 		
 		//TYPE 6
 		case typeSix:
-		doTypeSix(instruction, commandName);
+		doTypeSix(instruction);
 		break;
 		
 		default:
@@ -393,20 +392,27 @@ int operate(int instruction, char* commandName){
 
 
 //NO memory   no register
-int doTypeOne(int instruction, char* commandName){
+int doTypeOne(int instruction){
 	
 	switch(instruction&oneWord){
 		//NOP
 		case 0:
 		strcpy(commandName,"NOP");
+		time++;
+		pc++;
 		break;
 		
 		//HLT
 		case 1:
-		int before=psw;
+		printRegs(2,5,3,psw);
 		if((psw&bitZero)==bitZero){
 			psw--;
 		}
+		else{
+			printf("for some reason we already decided to halt");
+			return FALSE;
+		}
+		printRegs(3,psw,2,5);
 		strcpy(commandName,"HLT");
 		pc++;
 		time++;
@@ -415,36 +421,48 @@ int doTypeOne(int instruction, char* commandName){
 		//RET
 		case 2:
 		strcpy(commandName,"RET");
+		printRegs(2,6,3,sp);
+		if(sp==0xFFF){
+			printf("stack underflow error");
+			return FALSE;
+		}
+		sp++;
+		printRegs(3,sp,2,6);
+		printRegs(1,sp,3,mem[sp]);
+		pc=mem[sp];
+		printRegs(3,pc,2,4);
+		time+=2;
 		break;
 		
-		
+		//error
 		default:
 		printf("\nInvalid type 1 instruction\n");
 		return FALSE;
 		break;
 	}
+	return TRUE;
 }
 
 //I/O
-int doTypeThree(int instruction, char* commandName){
+int doTypeThree(int instruction){
 	
 }
 
 
 //yes memory    yes register
-int doTypeFour(int instruction, char* commandName){
+int doTypeFour(int instruction){
 	
 }
 
 
 // yes register   yes register
-int doTypeFive(int instruction, char* commandName){
+int doTypeFive(int instruction){
 	
 }
 
 
 //no memory     yes register
-int doTypeSix(int instruction, char* commandName){
+int doTypeSix(int instruction){
 	
 }
 
