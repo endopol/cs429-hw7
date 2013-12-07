@@ -462,7 +462,6 @@ int doTypeTwo(int instruction){
         address=mem[address];
     }
 
-	char* regname[10];
 	// Get a reference to the memory
 	int& curr_mem = mem[address];
 
@@ -470,6 +469,7 @@ int doTypeTwo(int instruction){
 	int regno = (instruction && twoRegBuffer)/0x800;
 	int& curr_reg = reg[regno];
 
+	char* regname[10];
 	regCode(regno, regname);
 
 	int result;
