@@ -112,7 +112,7 @@
 #define typeFive 0xE000
 #define typeSix 0xF000
 
-FILE* input;
+
 int reg[4];
 int pc;
 int linkBit;
@@ -139,13 +139,17 @@ void regCode(int regNum, char* ret);
 void printRegs(int val1Type, int val1, int val2Type, int val2);
 
 void main( int argc, const char* argv[] ){
+	int i;
+	for(i=0; i<4; i++)
+		reg[i]=0;
+
     if(argc>=2){
 		int indexOfFile=1;
 		if(argc>=3 && strcmp("-v",argv[1])==0){
 	    	verbose=TRUE;
 			indexOfFile++;
 	    }
-		int check=Load_Binary_Object_File(argv[indexOfFile]);
+		int check=readObject(argv[indexOfFile]);
 		switch(check){
 			case -1:
 				printf("\nUndefined error\n");
@@ -166,12 +170,12 @@ void main( int argc, const char* argv[] ){
 				printf("\nOBJG not present at begining\n");
 				break;
 		}
-		psw=1;
-		time=0;
+
+		printMem();
+
 		short keepOperating=TRUE;
 		int pcBefore;
 		int theInst;
-		printMem();
 		while(psw&bitZero==1 && keepOperating==TRUE){
 			commandName[0]='\0';
 			regStr[0]='\0';
@@ -192,14 +196,20 @@ void main( int argc, const char* argv[] ){
 
 int read_word(FILE* input){
 	int retval = 0;
-	int multiplier = 0x100;
+	int multiplier = 256;
 
-	int j, temp = 0;
+	int j, temp;
 	for(j=0; j<2; j++){
+		temp = 0;
+
 		retval*=multiplier;
 		fread(&temp, 1, 1, input);
 		retval += temp;
+		//fprintf(stderr, "%X ", temp);
 	}
+	//fprintf(stderr, ": %X\n", retval);
+
+	return retval;
 }
 
 int read_byte(FILE* input){	
@@ -207,7 +217,6 @@ int read_byte(FILE* input){
 	fread(&temp, 1, 1, input);
 	return temp;
 }
-
 
 
 //RETURNS 0 if success  -1 undefined error   -2 if file not found error    -6 if OBJG isnt at the begining
@@ -219,19 +228,20 @@ int readObject(const char* fileName){
 		//File not found error
 	}
 	char c;
-	char objgCheck[4];
+	char objgCheck[5];
 	int i;	
 	if(!fread(objgCheck, 1, 4, input))
-		return -4;	
+		return -4;
 
 	if(objgCheck[0]!='O' || objgCheck[1]!='B' || objgCheck[2]!='J' || objgCheck[3]!='G'){
 		return -6;
 	}
+	objgCheck[4]='\0';
 
-	//first part of pc
-	int temp[2] = {0, 0};
+	fprintf(stderr, "%s\n", objgCheck);
 
-	pc = read_word(input);
+	//first part of pc	
+	pc = read_word(input);	
 
 	fprintf(stderr, "pc=%i\n", pc);
 
@@ -249,67 +259,16 @@ int readObject(const char* fileName){
 		fprintf(stderr, "blocksize=%i, start_address=%i\n", blockSize, startingAddress);
 
 		int i;
-		for(i=0; i<(blockSize-3)/2; i++){		
+		for(i=0; i<(blockSize-3)/2; i++){
+			//fprintf(stderr, "%X\n", read_word(input));
 			mem[startingAddress+i] = read_word(input);
 		}
 	}while(blockSize>0);
+
 	psw=1;
 	return 0;
 }
 
-int get2(void)
-{
-    int c1 = getc(input);
-    int c2 = getc(input);
-    if ((c1 == EOF) || (c2 == EOF))
-        {
-            fprintf(stderr, "Premature EOF\n");
-            exit(1);
-        }
-    int n = ((c1 & 0xFF) << 8) | (c2 & 0xFF);
-    return(n);
-}
-
-void Store_Memory(int addr, int value)
-{
-    mem[addr] = value & oneWord;
-}
-
-int Load_Binary_Object_File(char* name)
-{
-    input=fopen(name,"r");
-	if(input==0){
-		return -2;
-		//File not found error
-	}
-    int c1 = getc(input);
-    int c2 = getc(input);
-    int c3 = getc(input);
-    int c4 = getc(input);
-
-    if ((c1 != 'O') || (c2 != 'B') || (c3 != 'J') || (c4 != 'G'))
-        {
-            fprintf(stdout, "First four bytes are not OBJ8: ");
-			
-            exit(1);
-        }
-
-    pc = get2();
-
-    int n;
-    while ((n = getc(input)) != EOF)
-        {
-            n = n - 1;
-            int addr = get2(); n -= 2;
-            while (n > 0)
-                {
-                    int data = get2(); n -= 2;            
-                    Store_Memory(addr, data);
-                    addr += 1;
-                }
-        }
-    return(0);
-}
 
 
 void printMem(){
@@ -608,7 +567,7 @@ int doTypeThree(int instruction){
 		}
 		else{
 	        *curr_reg=(int)myChar;
-			*curr_reg=*curr_reg&oneWord;
+			*curr_reg=(*curr_reg)&oneWord;
 			printRegs(3,*curr_reg,2,regno);
 		}
         pc++;
@@ -617,8 +576,8 @@ int doTypeThree(int instruction){
     }
 	//device is 4
     else if(device==deviceFour){
-		int myInt=*curr_reg & 0xFF;
-        char myOut=(char)(*curr_reg & 0xFF);
+		int myInt=(*curr_reg) & 0xFF;
+        char myOut=(char)((*curr_reg) & 0xFF);
         putchar(myOut);
 		//printf("%c",out);
 		printRegs(2,regno,3,myInt);
@@ -879,13 +838,13 @@ int doTypeSix(int instruction){
 	int flip=FALSE;
 	
 	//sm*
-	if(instruction&bitNine==bitNine){
+	if((instruction&bitNine)==bitNine){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"SM");
 		strcat(commandName,regname);
-		if((*curr_reg & theSignBit)==theSignBit){
+		if(((*curr_reg) & theSignBit)==theSignBit){
 			skipSM=TRUE;
 		}
 		else{
@@ -895,7 +854,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//sz*
-	if(instruction&bitEight==bitEight){
+	if((instruction&bitEight)==bitEight){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -911,7 +870,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//snl
-	if(instruction&bitSeven==bitSeven){
+	if((instruction&bitSeven)==bitSeven){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -926,7 +885,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//rss
-	if(instruction&bitSix==bitSix){
+	if((instruction&bitSix)==bitSix){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -935,7 +894,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//cl*
-	if(instruction&bitFive==bitFive){
+	if((instruction&bitFive)==bitFive){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -946,7 +905,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//cll
-	if(instruction&bitFour==bitFour){
+	if((instruction&bitFour)==bitFour){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -956,7 +915,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//cm*
-	if(instruction&bitThree==bitThree){
+	if((instruction&bitThree)==bitThree){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -969,7 +928,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//cml
-	if(instruction&bitTwo==bitTwo){
+	if((instruction&bitTwo)==bitTwo){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -980,7 +939,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//dc*
-	if(instruction&bitOne==bitOne){
+	if((instruction&bitOne)==bitOne){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -991,6 +950,9 @@ int doTypeSix(int instruction){
 		*curr_reg -=1;
 		if(*curr_reg<minSigned)
 			linkBit ^= 1;
+
+		*curr_reg &= oneWord;
+
 		printRegs(3, linkBit, 2, 8);
 		
 		printRegs(3,*curr_reg,2,regno);
@@ -1008,6 +970,8 @@ int doTypeSix(int instruction){
 		*curr_reg +=1;
 		if(*curr_reg>maxSigned)
 			linkBit ^= 1;
+
+		*curr_reg &= oneWord;
 		printRegs(3, linkBit, 2, 8);
 		
 		printRegs(3,*curr_reg,2,regno);
@@ -1066,6 +1030,9 @@ void regCode(int regNum, char* ret){
 
 //type 1 is memory      //type 2 is register     //type 3 is value
 void printRegs(int val1Type, int val1, int val2Type, int val2){
+	val1 &= oneWord;
+	val2 &= oneWord;
+
 	if(strlen(regStr)>0){
 		strcat(regStr,", ");
 	}

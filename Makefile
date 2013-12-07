@@ -1,5 +1,5 @@
 main:
-	gcc pdp429.c -o pdp429
+	gcc pdp429.c -g -o pdp429
 
 all:
 
