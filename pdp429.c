@@ -153,8 +153,6 @@ void main( int argc, const char* argv[] ){
 				printf("\nOBJG not present at begining\n");
 				break;
 		}
-		
-		//edits need to be made below!
 		short keepOperating=TRUE;
 		int pcBefore;
 		int theInst;
@@ -192,7 +190,7 @@ int readObject(char* fileName){
 	char objgCheck[4];
 	int i;
 	for(i=0; i<4; i++){
-		if(c = getc(input)) != EOF){
+		if(c = getc(input) != EOF){
 			objgCheck[i]=c;
 		}
 		else{
@@ -216,8 +214,8 @@ int readObject(char* fileName){
 	}
 	tempArr[1]=c;
 	pc=((int)tempArr[0]);
-	pc=adding<<8;
-	pc=adding & upperEight;
+	pc=pc<<8;
+	pc=pc & upperEight;
 	pc+=((int)tempArr[1])&lowerEight;
 	tempArr[0]=NULL;
 	tempArr[1]=NULL;
@@ -465,11 +463,11 @@ int doTypeTwo(int instruction){
     }
 
 	// Get a reference to the memory
-	int& curr_mem = mem[address];
+	int *curr_mem = &mem[address];
 
 	// Get a reference to the register
-	int regno = (instruction && twoRegBuffer)/0x800;
-	int& curr_reg = reg[regno];
+	int regno = (instruction & twoRegBuffer)/0x800;
+	int* curr_reg = &(reg[regno]);
 
 	char* regname[10];
 	regCode(regno, regname);
@@ -480,82 +478,82 @@ int doTypeTwo(int instruction){
 		//ADD (type 2)
 		case typeTwoAdd:
 			sprintf(commandName, "ADD%s", regname);
-			result = curr_reg + curr_mem;
+			result = *curr_reg + *curr_mem;
 		break;
 	
 		//SUB (type 2)
 		case typeTwoSub:
 			sprintf(commandName, "SUB%s", regname);
-			int neg = overflowBit - curr_mem;	
-			result = curr_reg + neg;
+			int neg = overflowBit - (*curr_mem);	
+			result = *curr_reg + neg;
 		break;			
 		
 		//MUL (type2)
 		case typeTwoMul:
 			sprintf(commandName, "MUL%s", regname);	
-			result = curr_reg * curr_mem;
+			result = (*curr_reg)*(*curr_mem);
 		break;
 		
 		//DIV (type 2)
 		case typeTwoDiv:
 			sprintf(commandName, "DIV%s", regname);
 			
-			if(curr_mem==0)
+			if(*curr_mem==0)
 				result = overflowBit;
 			else
-				result = curr_reg / curr_mem;
+				result = (*curr_reg) / (*curr_mem);
 		break;
 		
 		//AND (type 2)
 		case typeTwoAnd:
 			sprintf(commandName, "AND%s", regname);	
-			result = curr_reg & curr_mem;
+			result = (*curr_reg) & (*curr_mem);
 		break;
 		
 		//OR (type 2)
 		case typeTwoOr:
 			sprintf(commandName, "OR%s", regname);	
-			result = curr_reg | curr_mem;		
+			result = (*curr_reg) | (*curr_mem);		
 		break;
 		
 		//XOR (type 2)
 		case typeTwoXor:
 			sprintf(commandName, "XOR%s", regname);	
-			result = curr_reg ^ curr_mem;
+			result = (*curr_reg) ^ (*curr_mem);
 		break;
 		
 		//LD (type 2)
 		case typeTwoLd:
 			sprintf(commandName, "LD%s", regname);
-			printRegs(1, address, 3, curr_mem);
-			curr_reg = curr_mem;
-			printRegs(3, curr_mem, 2, regno);
+			printRegs(1, address, 3, *curr_mem);
+			*curr_reg = *curr_mem;
+			printRegs(3, *curr_mem, 2, regno);
 		break;
 		
 		//ST (type 2)
 		case typeTwoSt:
 			sprintf(commandName, "ST%s", regname);
-			printRegs(2, regno, 3, curr_reg);
-			curr_mem = curr_reg;		
-			printRegs(3, curr_reg, 1, address);
+			printRegs(2, regno, 3, *curr_reg);
+			*curr_mem = *curr_reg;		
+			printRegs(3, *curr_reg, 1, address);
 		break;
 	}
 
 	// Extra handling for arithmetic ops
 	if((instruction & typeBuffer) < typeTwoLd){
 		// Print initial state
-		printRegs(2, regno, 3, curr_reg);
-		printRegs(1, address, 3, curr_mem);
+		printRegs(2, regno, 3, *curr_reg);
+		printRegs(1, address, 3, *curr_mem);
 
-		int overflow = (result>oneWord) // Check for overflow
+		int overflow = (result>oneWord); // Check for overflow
 		linkBit = linkBit ^ overflow; 	// Complement the link bit
 			
-		curr_reg = result & oneWord; 	// Truncate the result
+		*curr_reg = result & oneWord; 	// Truncate the result
 			
 		// Print final state
 		if(overflow)
 			printRegs(3, linkBit, 2, 8);
-		printRegs(3, curr_reg, 2, regno);
+		printRegs(3, *curr_reg, 2, regno);
 	}		
 }
 
@@ -563,20 +561,20 @@ int doTypeTwo(int instruction){
 
 //I/O
 int doTypeThree(int instruction){
-	int regno = (instruction && twoRegBuffer)/0x800;
-	int& curr_reg = reg[regno];
+	int regno = (instruction & twoRegBuffer)/0x800;
+	int* curr_reg = &(reg[regno]);
     int device=(instruction&deviceBuffer);
 	//device is 3
     if(device==deviceThree){
         char myChar=getc(stdin);
 		if(myChar==EOF){
-			curr_reg=oneWord;
+			*curr_reg=oneWord;
 			printRegs(3,oneWord,2,regno);
 		}
 		else{
-	        curr_reg=(int)myChar;
-			curr_reg=curr_reg&oneWord;
-			printRegs(3,curr_reg,2,regno);
+	        *curr_reg=(int)myChar;
+			*curr_reg=*curr_reg&oneWord;
+			printRegs(3,*curr_reg,2,regno);
 		}
         pc++;
         time++;
@@ -584,8 +582,8 @@ int doTypeThree(int instruction){
     }
 	//device is 4
     else if(device==deviceFour){
-		int myInt=curr_reg & 0xFF;
-        char myOut=(char)(curr_reg & 0xFF);
+		int myInt=*curr_reg & 0xFF;
+        char myOut=(char)(*curr_reg & 0xFF);
         putchar(myOut);
 		//printf("%c",out);
 		printRegs(2,regno,3,myInt);
@@ -626,17 +624,17 @@ int doTypeFour(int instruction){
         address=mem[address];
     }
 
-	int& curr_mem = mem[address];
+	int *curr_mem = &mem[address];
 
 	switch(instruction&upperSixOpcode){
 		
 		//ISZ
 		case typeFourISZ:
-			printRegs(1, address, 3, curr_mem);   
-			curr_mem += 1;
-			printRegs(3, curr_mem, 1, address);
+			printRegs(1, address, 3, *curr_mem);   
+			*curr_mem += 1;
+			printRegs(3, *curr_mem, 1, address);
 			
-			if(curr_mem&oneWord==0){
+			if(((*curr_mem)&oneWord)==0){
 				pc += 1;
 				printRegs(3, pc, 1, 4);
 			}
@@ -728,36 +726,36 @@ int doTypeFour(int instruction){
 	return TRUE;
 }
 
-int& reg_by_num(int regnum){
+int* reg_by_num(int regnum){
 	if(regnum<=4) // first four registers
-		return reg[regnum];
+		return &(reg[regnum]);
 
 	if(regnum==4)
-		return pc;
+		return &pc;
 
 	if(regnum==5)
-		return psw;
+		return &psw;
 
 	if(regnum==6)
-		return sp;
+		return &sp;
 
 	if(regnum==7)
-		return spl;
+		return &spl;
 }
 
 // yes register   yes register
 int doTypeFive(int instruction){
-	int reg_k = instruction & regK,
-		reg_j = (instruction & regJ)/8,
-		reg_i = (instruction & regI)/64;
+	int reg_k = instruction & regK;
+	int reg_j = (instruction & regJ)/8;
+	int reg_i = (instruction & regI)/64;
 
-	int& curr_i = reg_by_num(reg_i),
-		 curr_j = reg_by_num(reg_j),
-		 curr_k = reg_by_num(reg_k);
-
+	int* curr_i = reg_by_num(reg_i);
+	int curr_j = *(reg_by_num(reg_j));
+	int curr_k = *(reg_by_num(reg_k));
+	int result;
 	switch(instruction&typeFiveSubOpcode){
 		//MOD (type 5)
-		case typeFiveMod:
+		case typeFiveMOD:
 			strcpy(commandName, "MOD");
 
 			if(curr_k==0)
@@ -767,26 +765,26 @@ int doTypeFive(int instruction){
 		break;
 
 		//ADD (type 5)
-		case typeFiveAdd:
+		case typeFiveADD:
 			strcpy(commandName, "ADD");
 			result = curr_j + curr_k;
 		break;
 	
 		//SUB (type 5)
-		case typeFiveSub:
+		case typeFiveSUB:
 			strcpy(commandName, "SUB");
 			int neg = overflowBit - curr_k;	
 			result = curr_j + neg;
 		break;			
 		
 		//MUL (type 5)
-		case typeFiveMul:
+		case typeFiveMUL:
 			strcpy(commandName, "MUL");
 			result = curr_j * curr_k;
 		break;
 		
 		//DIV (type 5)
-		case typeFiveDiv:
+		case typeFiveDIV:
 			strcpy(commandName, "DIV");			
 			if(curr_k==0)
 				result = overflowBit;
@@ -795,19 +793,19 @@ int doTypeFive(int instruction){
 		break;
 		
 		//AND (type 5)
-		case typeFiveAnd:
+		case typeFiveAND:
 			strcpy(commandName, "AND");
 			result = curr_j & curr_k;
 		break;
 		
 		//OR (type 5)
-		case typeFiveOr:
+		case typeFiveOR:
 			strcpy(commandName, "OR");
 			result = curr_j | curr_k;		
 		break;
 		
 		//XOR (type 5)
-		case typeFiveXor:
+		case typeFiveXOR:
 			strcpy(commandName, "XOR");
 			result = curr_j ^ curr_k;
 		break;
@@ -817,22 +815,22 @@ int doTypeFive(int instruction){
 	printRegs(2, reg_j, 3, curr_j);
 	printRegs(2, reg_k, 3, curr_k);
 
-	int overflow = (result>oneWord) // Check for overflow
+	int overflow = (result>oneWord); // Check for overflow
 	linkBit = linkBit ^ overflow; 	// Complement the link bit
 			
-	curr_i = result & oneWord; 	// Truncate the result
+	*curr_i = result & oneWord; 	// Truncate the result
 			
 	// Print final state
 	if(overflow)
 		printRegs(3, linkBit, 2, 8);
-	printRegs(3, curr_i, 2, reg_i);
+	printRegs(3, *curr_i, 2, reg_i);
 }
 
 
 //no memory     yes register
 int doTypeSix(int instruction){
-	int regno = (instruction && twoRegBuffer)/0x800;
-	int& curr_reg = reg[regno];
+	int regno = (instruction & twoRegBuffer)/0x800;
+	int* curr_reg = &(reg[regno]);
 	char* regname[10];
 	regCode(regno, regname);
 	int skipSM=-1;
@@ -841,39 +839,39 @@ int doTypeSix(int instruction){
 	int flip=FALSE;
 	
 	//sm*
-	if(instruction&bit9==bit9){
+	if(instruction&bitNine==bitNine){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"SM");
 		strcat(commandName,regname);
-		if(curr_reg&theSignBit==theSignBit){
+		if((*curr_reg & theSignBit)==theSignBit){
 			skipSM=TRUE;
 		}
 		else{
 			skipSM=FALSE;
 		}
-		printRegs(2,regno,3,curr_reg);
+		printRegs(2,regno,3,*curr_reg);
 	}
 	
 	//sz*
-	if(instruction&bit8==bit8){
+	if(instruction&bitEight==bitEight){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"SZ");
 		strcat(commandName,regname);
-		if(curr_reg==0){
+		if(*curr_reg==0){
 			skipSZ=TRUE;
 		}
 		else{
 			skipSZ=FALSE;
 		}
-		printRegs(2,regno,3,curr_reg);
+		printRegs(2,regno,3,*curr_reg);
 	}
 	
 	//snl
-	if(instruction&bit7==bit7){
+	if(instruction&bitSeven==bitSeven){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -888,7 +886,7 @@ int doTypeSix(int instruction){
 	}
 	
 	//rss
-	if(instruction&bit6==bit6){
+	if(instruction&bitSix==bitSix){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -897,18 +895,18 @@ int doTypeSix(int instruction){
 	}
 	
 	//cl*
-	if(instruction&bit5==bit5){
+	if(instruction&bitFive==bitFive){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"CL");
 		strcat(commandName,regname);
-		curr_reg=0;
-		printRegs(3,curr_reg,2,regno);
+		*curr_reg=0;
+		printRegs(3,*curr_reg,2,regno);
 	}
 	
 	//cll
-	if(instruction&bit4==bit4){
+	if(instruction&bitFour==bitFour){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -918,20 +916,20 @@ int doTypeSix(int instruction){
 	}
 	
 	//cm*
-	if(instruction&bit3==bit3){
+	if(instruction&bitThree==bitThree){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"CM");
 		strcat(commandName,regname);
-		printRegs(2,regno,3,curr_reg);
-		curr_reg=~curr_reg;
-		curr_reg=curr_reg&oneWord;
-		printRegs(3,curr_reg,2,regno);
+		printRegs(2,regno,3,*curr_reg);
+		*curr_reg=~*curr_reg;
+		*curr_reg=*curr_reg&oneWord;
+		printRegs(3,*curr_reg,2,regno);
 	}
 	
 	//cml
-	if(instruction&bit2==bit2){
+	if(instruction&bitTwo==bitTwo){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
@@ -942,29 +940,29 @@ int doTypeSix(int instruction){
 	}
 	
 	//dc*
-	if(instruction&bit1==bit1){
+	if(instruction&bitOne==bitOne){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"DC");
 		strcat(commandName,regname);
-		printRegs(2,regno,3,curr_reg);
+		printRegs(2,regno,3,*curr_reg);
 		
 		
-		printRegs(3,curr_reg,2,regno);
+		printRegs(3,*curr_reg,2,regno);
 	}
 	
 	//ic*
-	if(instruction&bit0==bit0){
+	if(instruction&bitZero==bitZero){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"IN");
 		strcat(commandName,regname);
-		printRegs(2,regno,3,curr_reg);
+		printRegs(2,regno,3,*curr_reg);
 		
 		
-		printRegs(3,curr_reg,2,regno);
+		printRegs(3,*curr_reg,2,regno);
 	}
 	
 	time++;
@@ -1035,7 +1033,8 @@ void printRegs(int val1Type, int val1, int val2Type, int val2){
 		strcat(regStr,"]");
 	}
 	else if(val1Type==2){
-		strcat(regStr,regCode(val1));
+		regCode(val1, temp);
+		strcat(regStr,temp);
 	}
 	else if(val1Type==3){
 		sprintf(temp, "0x%04X", val1);
