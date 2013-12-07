@@ -310,72 +310,72 @@ int operate(int instruction){
 		
 		//ADD (type 2)
 		case typeTwoAdd:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//SUB (type 2)
 		case typeTwoSub:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//MUL (type2)
 		case typeTwoMul:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//DIV (type 2)
 		case typeTwoDiv:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//AND (type 2)
 		case typeTwoAnd:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//OR (type 2)
 		case typeTwoOr:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//XOR (type 2)
 		case typeTwoXor:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//LD (type 2)
 		case typeTwoLd:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//ST (type 2)
 		case typeTwoSt:
-		
+		return doTypeTwo(instruction);
 		break;
 		
 		//TYPE 3
 		case typeThree:
-		doTypeThree(instruction);	
+		return doTypeThree(instruction);	
 		break;
 		
 		//TYPE 4
 		case typeFourA:
-		doTypeFour(instruction);	
+		return doTypeFour(instruction);	
 		break;
 			
 		//TYPE 4
 		case typeFourB:
-		doTypeFour(instruction);
+		return doTypeFour(instruction);
 		break;
 		
 		//TYPE 5
 		case typeFive:
-		doTypeFive(instruction);
+		return doTypeFive(instruction);
 		break;
 		
 		//TYPE 6
 		case typeSix:
-		doTypeSix(instruction);
+		return doTypeSix(instruction);
 		break;
 		
 		default:
@@ -558,13 +558,175 @@ int doTypeTwo(int instruction){
 
 //I/O
 int doTypeThree(int instruction){
-	
+	int regno = (instruction && twoRegBuffer)/0x800;
+	int& curr_reg = reg[regno];
+    int device=(instruction&deviceBuffer);
+	//device is 3
+    if(device==deviceThree){
+        char myChar=getc(stdin);
+		if(myChar==EOF){
+			curr_reg=oneWord;
+			printRegs(3,oneWord,2,regno);
+		}
+		else{
+	        curr_reg=(int)myChar;
+			curr_reg=curr_reg&oneWord;
+			printRegs(3,curr_reg,2,regno);
+		}
+        pc++;
+        time++;
+		strcpy(commandName,"IOT 3");
+    }
+	//device is 4
+    else if(device==deviceFour){
+		int myInt=curr_reg & 0xFF;
+        char myOut=(char)(curr_reg & 0xFF);
+        putchar(myOut);
+		//printf("%c",out);
+		printRegs(2,regno,3,myInt);
+        pc++;
+        time++;
+		strcpy(commandName,"IOT 4");
+    }
+    else{
+		printf("error invalid operation in IOT command");
+        return FALSE;
+    }
+	return TRUE;
 }
 
 
-//yes memory    yes register
+//yes memory    no register
 int doTypeFour(int instruction){
+    int currentPage=pc/256;
+	currentPage=currentPage*256;
+    //this turns D/I into a variable:   indirect
+    short indirect=FALSE;
+    if((instruction & bitNine)==bitNine){
+        indirect=TRUE;
+    }
 	
+    //this turns Z/C into a vaiable: onCurrPage
+    int onCurrPage=FALSE;
+    if((instruction&bitEight)==bitEight){
+        onCurrPage=TRUE;
+    }
+    
+    //this sets the memory address we are dealing with
+    int address;
+    if(indirect==TRUE){
+        time++;
+        if(onCurrPage==TRUE){
+            //indirect addressing on the current page
+            address=mem[currentPage+(instruction&lowerEightPage)];
+        }
+        else{
+            //indirect addressing on page zero
+            address=mem[(instruction&lowerEightPage)];
+        }
+    }
+    else{
+        if(onCurrPage==TRUE){
+            //direct addressing on the current page
+            address=currentPage+(instruction&lowerEightPage);
+        }
+        else{
+            //direct addressing on page zero
+            address=instruction&lowerEightPage;
+        }
+    }
+	int regno = (instruction && twoRegBuffer)/0x800;
+	int& curr_reg = reg[regno];
+	
+	switch(instruction&upperSixOpcode){
+		
+		//ISZ
+		case typeFourISZ:
+		time+=3;
+		break;
+		
+		
+		//JMP
+		case typeFourJMP:
+		time++;
+		pc=address;
+		printRegs(3,address,2,4);
+		if(indirect==TRUE){
+			strcpy(commandName,"I JMP");
+		}
+		else{
+			strcpy(commandName,"JMP");
+		}
+		break;
+		
+		
+		//CALL
+		case typeFourCALL:
+		if(sp<spl){
+			printf("stack overflow error\n");
+			return FALSE;
+		}
+		time+=2;
+		printRegs(3,(pc+1),1,sp);
+		mem[sp]=pc+1;
+		sp--;
+		printRegs(3,sp,2,6);
+		pc=address;
+		printRegs(3,address,2,4);
+		if(indirect==TRUE){
+			strcpy(commandName,"I CALL");
+		}
+		else{
+			strcpy(commandName,"CALL");
+		}
+		break;
+		
+		
+		//PUSH
+		case typeFourPUSH:
+		if(sp<spl){
+			printf("stack overflow error\n");
+			return FALSE;
+		}
+		time+=3;
+		printRegs(1,address,3,mem[address]);
+		mem[sp]=mem[address];
+		printRegs(3,mem[address],1,sp);
+		sp--;
+		printRegs(3,sp,2,6);
+		pc++;
+		if(indirect==TRUE){
+			strcpy(commandName,"I PUSH");
+		}
+		else{
+			strcpy(commandName,"PUSH");
+		}
+		break;
+		
+		
+		//POP
+		case typeFourPOP:
+		if(sp==oneWord){
+			printf("stack underflow error\n");
+			return FALSE;
+		}
+		time+=3;
+		printRegs(2,6,3,sp);
+		sp++;
+		printRegs(3,sp,2,6);
+		printRegs(1,sp,3,mem[sp]);
+		mem[address]=mem[sp];
+		printRegs(3,mem[sp],1,address);
+		pc++;
+		if(indirect==TRUE){
+			strcpy(commandName,"I POP");
+		}
+		else{
+			strcpy(commandName,"POP");
+		}
+		break;
+	}
+	return TRUE;
 }
 
 
