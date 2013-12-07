@@ -190,8 +190,23 @@ void main( int argc, const char* argv[] ){
     }
 }
 
+int read_word(FILE* input){
+	int retval = 0;
+	int multiplier = 0x100;
 
+	int j, temp = 0;
+	for(j=0; j<2; j++){
+		retval*=multiplier;
+		fread(&temp, 1, 1, input);
+		retval += temp;
+	}
+}
 
+int read_byte(FILE* input){	
+	int temp = 0;	
+	fread(&temp, 1, 1, input);
+	return temp;
+}
 
 
 //RETURNS 0 if success  -1 undefined error   -2 if file not found error    -6 if OBJG isnt at the begining
@@ -213,10 +228,9 @@ int readObject(const char* fileName){
 	}
 
 	//first part of pc
-	int temp[2];
-	if(!fread(temp, 1, 2, input))
-		return -4;
-	pc = temp[1] + *temp[2];
+	int temp[2] = {0, 0};
+
+	pc = read_word(input);
 
 	fprintf(stderr, "pc=%i\n", pc);
 
@@ -228,12 +242,16 @@ int readObject(const char* fileName){
 	int startingAddress = 0;
 	int valid = TRUE;
 	do{
-		valid = valid && fread(&blockSize, 1, 1, input);
-	   	valid = valid && fread(&startingAddress, 2, 1, input);	
+		blockSize = read_byte(input);	
+		startingAddress = read_word(input);
 
 		fprintf(stderr, "blocksize=%i, start_address=%i\n", blockSize, startingAddress);
-		valid = valid && fread(mem+startingAddress, 2, (blockSize-3)/2, input); 	
-	}while(valid);
+
+		int i;
+		for(i=0; i<(blockSize-3)/2; i++){		
+			mem[startingAddress+i] = read_word(input);
+		}
+	}while(blockSize>0);
 	psw=1;
 	return 0;
 }
