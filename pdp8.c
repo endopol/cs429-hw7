@@ -48,7 +48,7 @@
 #define bit11 0x800
 
 
-
+#define overflowBit 0x10000
 
 int rega;
 short linkBit;

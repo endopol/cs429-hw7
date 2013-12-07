@@ -9,6 +9,7 @@
 #define upperEight 0xFF00
 #define lowerEight 0xFF
 #define oneWord 0xFFFF
+#define overflowBit 0x10000
 
 //type1
 #define subOpcode 0x03FF
@@ -108,10 +109,6 @@
 #define typeSix 0xF000
 
 
-
-
-
-
 int reg[4];
 int pc;
 int linkBit;
@@ -124,7 +121,7 @@ int time;
 char* regStr[300];
 char* commandName[300];
 
-
+void regCode(int regNum, char* ret);
 
 void main( int argc, const char* argv[] ){
     if(argc>=2){
@@ -446,93 +443,115 @@ int doTypeTwo(int instruction){
     int currentPage=pc/256;
 	currentPage=currentPage*256;
     //this turns D/I into a variable:   indirect
-    short indirect=FALSE;
-    if((instruction & bitNine)==bitNine){
-        indirect=TRUE;
-    }
-	
+    int indirect=((instruction & bitNine)==bitNine);
+   
     //this turns Z/C into a vaiable: onCurrPage
-    int onCurrPage=FALSE;
-    if((instruction&bitEight)==bitEight){
-        onCurrPage=TRUE;
-    }
-    
+    int onCurrPage=((instruction&bitEight)==bitEight);
+   
     //this sets the memory address we are dealing with
-    int address;
+    int address = instruction&lowerEightPage;
+
+	// Deal with Z/C
+	if(onCurrPage==TRUE)
+		address+=currentPage;
+	
+	// Deal with D/I
     if(indirect==TRUE){
         time++;
-        if(onCurrPage==TRUE){
-            //indirect addressing on the current page
-            address=mem[currentPage+(instruction&lowerEightPage)];
-        }
-        else{
-            //indirect addressing on page zero
-            address=mem[(instruction&lowerEightPage)];
-        }
+		printRegs(1, address, 3, mem[address]);
+        address=mem[address];
     }
-    else{
-        if(onCurrPage==TRUE){
-            //direct addressing on the current page
-            address=currentPage+(instruction&lowerEightPage);
-        }
-        else{
-            //direct addressing on page zero
-            address=instruction&lowerEightPage;
-        }
-    }
+
+	char* regname[10];
+	// Get a reference to the memory
+	int& curr_mem = mem[address];
+
+	// Get a reference to the register
 	int regno = (instruction && twoRegBuffer)/0x800;
 	int& curr_reg = reg[regno];
+
+	regCode(regno, regname);
+
+	int result;
 	switch(instruction & typeBuffer){
 		
 		//ADD (type 2)
 		case typeTwoAdd:
-		
+			sprintf(commandName, "ADD%s", regname);
+			result = curr_reg + curr_mem;
 		break;
-		
+	
 		//SUB (type 2)
 		case typeTwoSub:
-		
-		break;
+			sprintf(commandName, "SUB%s", regname);
+			int neg = overflowBit - curr_mem;	
+			result = curr_reg + neg;
+		break;			
 		
 		//MUL (type2)
 		case typeTwoMul:
-		
+			sprintf(commandName, "MUL%s", regname);	
+			result = curr_reg * curr_mem;
 		break;
 		
 		//DIV (type 2)
 		case typeTwoDiv:
-		
+			sprintf(commandName, "DIV%s", regname);	
+			result = curr_reg / curr_mem;
 		break;
 		
 		//AND (type 2)
 		case typeTwoAnd:
-		
+			sprintf(commandName, "AND%s", regname);	
+			result = curr_reg & curr_mem;
 		break;
 		
 		//OR (type 2)
 		case typeTwoOr:
-		
+			sprintf(commandName, "OR%s", regname);	
+			result = curr_reg | curr_mem;		
 		break;
 		
 		//XOR (type 2)
 		case typeTwoXor:
-		
+			sprintf(commandName, "AND%s", regname);	
+			result = curr_reg ^ curr_mem;
 		break;
 		
 		//LD (type 2)
 		case typeTwoLd:
-		
+			sprintf(commandName, "LD%s", regname);
+			printRegs(1, address, 3, curr_mem);
+			curr_reg = curr_mem;
+			printRegs(3, curr_mem, 2, regno);
 		break;
 		
 		//ST (type 2)
 		case typeTwoSt:
-		
+			sprintf(commandName, "ST%s", regname);
+			printRegs(2, regno, 3, curr_reg);
+			curr_mem = curr_reg;		
+			printRegs(2, curr_reg, 3, address);
 		break;
-		
-		
 	}
-	
-	
+
+	// Extra handling for arithmetic ops
+	if((instruction & typeBuffer) < typeTwoLd){
+
+		// Print initial state
+		printRegs(2, regno, 3, curr_reg);
+		printRegs(1, address, 3, curr_mem);
+
+		int overflow = (result>oneWord) // Check for overflow
+		linkBit = linkBit ^ overflow; 	// Complement the link bit
+			
+		curr_reg = result & oneWord; 	// Truncate the result
+			
+		// Print final state
+		if(overflow)
+			printRegs(3, linkBit, 2, 8);
+		printRegs(3, curr_reg, 2, regno);
+	}		
 }
 
 
@@ -561,8 +580,7 @@ int doTypeSix(int instruction){
 }
 
 //do i need to malloc?
-char* regCode(int regNum){
-	char* ret[4];
+void regCode(int regNum, char* ret){
 	if(regNum==0){
 		strcpy(ret, "A");
 	}
@@ -586,6 +604,9 @@ char* regCode(int regNum){
 	}
 	else if(regNum==7){
 		strcpy(ret, "SPL");
+	}
+	else if(regNum==8){
+		strcpy(ret, "L");
 	}
 	else{
 		strcpy(ret, "???");
@@ -625,7 +646,8 @@ void printRegs(int val1Type, int val1, int val2Type, int val2){
 		strcat(regStr,"]");
 	}
 	else if(val2Type==2){
-		strcat(regStr,regCode(val2));
+		regCode(val2, temp);
+		strcat(regStr, temp);
 	}
 	else if(val2Type==3){
 		sprintf(temp, "0x%04X", val2);
