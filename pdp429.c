@@ -208,85 +208,26 @@ int readObject(const char* fileName){
 	if(objgCheck[0]!='O' || objgCheck[1]!='B' || objgCheck[2]!='J' || objgCheck[3]!='G'){
 		return -6;
 	}
+
 	//first part of pc
-	char tempArr[2];
-	c=getc(input);
-	if(c == EOF){
+	if(!fread(&pc, 2, 1, input))
 		return -4;
-	}
-	tempArr[0]=c;
-	//send part of pc
-	c=getc(input);
-	if(c == EOF){
-		return -4;
-	}
-	tempArr[1]=c;
-	pc=((int)tempArr[0]);
-	pc=pc<<8;
-	pc=pc & upperEight;
-	pc+=((int)tempArr[1])&lowerEight;
-	tempArr[0]=0;
-	tempArr[1]=0;
+
 	int step=1;
 	int bytesRead=0;
 	int currentAddress;
-	int maxBytes;
-	while((c = getc(input)) != EOF){
-		if(bytesRead>=maxBytes){
-			//hmm should we do more error checking
-			//error checking
-			if(step!=3){
-				return -3;
-			}
-			if(bytesRead!=maxBytes){
-				return -5;
-			}
-			step=1;
-			bytesRead=-2;
-			maxBytes=-1;
-		}
-		else if(step==1){
-			maxBytes=(int)c;
-			step++;
-			bytesRead=1;
-		}
-		else if(step==2){
-			tempArr[0]=c;
-			c=getc(input);
-			if(c == EOF){
-				return -4;
-			}
-			tempArr[1]=c;
-			//make sure this is correct.  im taking 2 characters from tempArr, combining them as ints
-			currentAddress=((int)tempArr[0]);
-			currentAddress=currentAddress<<8;
-			currentAddress=currentAddress & upperEight;
-			currentAddress+=((int)tempArr[1])&lowerEight;
-			tempArr[0]=0;
-			tempArr[1]=0;
-			step++;
-			bytesRead+=2;
-		}
-		else if(step==3){
-			tempArr[0]=c;
-			c=getc(input);
-			if(c == EOF){
-				return -4;
-			}
-			tempArr[1]=c;
-			int adding;
-			//same as above.  double check
-			adding=((int)tempArr[0]);
-			adding=adding<<8;
-			adding=adding & upperEight;
-			adding+=((int)tempArr[1])&lowerEight;
-			mem[currentAddress]=adding;
-			currentAddress++;
-			bytesRead+=2;
-			tempArr[0]=0;
-			tempArr[1]=0;
-		}
-	}
+	int maxBytes = 65536;
+	
+	int blockSize = 0;
+	int startingAddress = 0;
+	int valid = TRUE;
+	do{
+		valid = valid && fread(&blockSize, 1, 1, input);
+	   	valid = valid && fread(&startingAddress, 2, 1, input);	
+
+		fprintf(stderr, "%i\n", blockSize);
+		valid = valid && fread(mem+startingAddress, 2, (blockSize-3)/2, input); 	
+	}while(valid);
 	psw=1;
 	return 0;
 }
