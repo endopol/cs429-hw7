@@ -10,6 +10,7 @@
 #define lowerEight 0xFF
 #define oneWord 0xFFFF
 #define theSignBit 0x8000
+#define overflowBit 0x10000
 
 #define maxSigned = 0x7FFF
 #define minSigned = -0x8000
@@ -121,8 +122,8 @@ int spl;
 int mem[65536];
 int verbose;
 int time;
-char* regStr[300];
-char* commandName[300];
+char regStr[300];
+char commandName[300];
 
 void regCode(int regNum, char* ret);
 
@@ -183,7 +184,7 @@ void main( int argc, const char* argv[] ){
 //-3 step isnt 3 when we get to end of a set      -4 premature EOF           -5 bytes read exceeded max bytes
 int readObject(char* fileName){
     FILE* input=fopen(fileName,"r");
-	if(input==NULL){
+	if(input==0){
 		return -2;
 		//File not found error
 	}
@@ -218,8 +219,8 @@ int readObject(char* fileName){
 	pc=pc<<8;
 	pc=pc & upperEight;
 	pc+=((int)tempArr[1])&lowerEight;
-	tempArr[0]=NULL;
-	tempArr[1]=NULL;
+	tempArr[0]=0;
+	tempArr[1]=0;
 	int step=1;
 	int bytesRead=0;
 	int currentAddress;
@@ -255,8 +256,8 @@ int readObject(char* fileName){
 			currentAddress=currentAddress<<8;
 			currentAddress=currentAddress & upperEight;
 			currentAddress+=((int)tempArr[1])&lowerEight;
-			tempArr[0]=NULL;
-			tempArr[1]=NULL;
+			tempArr[0]=0;
+			tempArr[1]=0;
 			step++;
 			bytesRead+=2;
 		}
@@ -276,8 +277,8 @@ int readObject(char* fileName){
 			mem[currentAddress]=adding;
 			currentAddress++;
 			bytesRead+=2;
-			tempArr[0]=NULL;
-			tempArr[1]=NULL;
+			tempArr[0]=0;
+			tempArr[1]=0;
 		}
 	}
 	psw=1;
@@ -290,7 +291,7 @@ void printMem(){
 	int i;
 	printf("Starting printing memory:\n");
 	for(i=0; i<65536; i++){
-		if(mem[i]!=NULL){
+		if(mem[i]!=0){
 			printf("Address: %03X       Data: %03X\n",i,mem[i]);
 		}
 	}
@@ -440,8 +441,8 @@ int doTypeOne(int instruction){
 }
 
 int cast_up(int x){
-	x = (x & oneWord);	
-	X = -(overflowBit-x);
+	int X = (x & oneWord);	
+	X = -(overflowBit-X);
 	return X;
 }
 
@@ -469,13 +470,13 @@ int doTypeTwo(int instruction){
     }
 
 	// Get a reference to the memory
-	int curr_mem = &mem[address];
+	int* curr_mem = &(mem[address]);
 
 	// Get a reference to the register
 	int regno = (instruction & twoRegBuffer)/0x800;
 	int* curr_reg = &(reg[regno]);
 
-	char* regname[10];
+	char regname[10];
 	regCode(regno, regname);
 
 	int result;
@@ -553,8 +554,8 @@ int doTypeTwo(int instruction){
 		printRegs(2, regno, 3, *curr_reg);
 		printRegs(1, address, 3, *curr_mem);
 
-		int overflow = (result > maxSigned || result < minSigned)
-
+		int overflow = ((result > maxSigned) || (result < minSigned));
+				
 		linkBit = linkBit ^ overflow; 	// Complement the link bit
 			
 		*curr_reg = result & oneWord; 	// Truncate the result
@@ -981,9 +982,9 @@ int doTypeSix(int instruction){
 		printRegs(2,regno,3,*curr_reg);
 	
 		*curr_reg +=1;
-		if(curr_reg>maxSigned)
+		if(*curr_reg>maxSigned)
 			linkBit ^= 1;
-		printRegs(3, linkBit, 2, 8)
+		printRegs(3, linkBit, 2, 8);
 		
 		printRegs(3,*curr_reg,2,regno);
 	}
@@ -1048,7 +1049,7 @@ void printRegs(int val1Type, int val1, int val2Type, int val2){
 	else{
 		strcpy(regStr,": ");
 	}
-	char* temp[10];
+	char temp[10];
 	if(val1Type==1){
 		strcat(regStr,"M[");
 		sprintf(temp, "0x%04X", val1);
