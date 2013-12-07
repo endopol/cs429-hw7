@@ -201,15 +201,10 @@ int readObject(const char* fileName){
 	}
 	char c;
 	char objgCheck[4];
-	int i;
-	for(i=0; i<4; i++){
-		if(c = getc(input) != EOF){
-			objgCheck[i]=c;
-		}
-		else{
-			return -4;
-		}
-	}
+	int i;	
+	if(!fread(objgCheck, 1, 4, input))
+		return -4;	
+
 	if(objgCheck[0]!='O' || objgCheck[1]!='B' || objgCheck[2]!='J' || objgCheck[3]!='G'){
 		return -6;
 	}
