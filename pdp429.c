@@ -153,6 +153,7 @@ void main( int argc, const char* argv[] ){
 				printf("\nOBJG not present at begining\n");
 				break;
 		}
+		exit(0);
 		short keepOperating=TRUE;
 		int pcBefore;
 		int theInst;
