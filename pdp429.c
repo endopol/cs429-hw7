@@ -166,11 +166,12 @@ void main( int argc, const char* argv[] ){
 				printf("\nOBJG not present at begining\n");
 				break;
 		}
-		printMem();
-		return;
+		psw=1;
+		time=0;
 		short keepOperating=TRUE;
 		int pcBefore;
 		int theInst;
+		printMem();
 		while(psw&bitZero==1 && keepOperating==TRUE){
 			commandName[0]='\0';
 			regStr[0]='\0';
@@ -293,7 +294,7 @@ int Load_Binary_Object_File(char* name)
             exit(1);
         }
 
-    sp = get2();
+    pc = get2();
 
     int n;
     while ((n = getc(input)) != EOF)
@@ -307,8 +308,6 @@ int Load_Binary_Object_File(char* name)
                     addr += 1;
                 }
         }
-		time=0;
-		
     return(0);
 }
 
