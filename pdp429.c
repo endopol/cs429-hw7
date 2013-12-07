@@ -457,7 +457,7 @@ int doTypeTwo(int instruction){
 	int* curr_mem = &(mem[address]);
 
 	// Get a reference to the register
-	int regno = (instruction & twoRegBuffer)/0x800;
+	int regno = (instruction & twoRegBuffer)/0x400;
 	int* curr_reg = &(reg[regno]);
 
 	char regname[10];
@@ -557,7 +557,7 @@ int doTypeTwo(int instruction){
 
 //I/O
 int doTypeThree(int instruction){
-	int regno = (instruction & twoRegBuffer)/0x800;
+	int regno = (instruction & twoRegBuffer)/0x400;
 	int* curr_reg = &(reg[regno]);
     int device=(instruction&deviceBuffer);
 	//device is 3
@@ -832,7 +832,7 @@ int doTypeFive(int instruction){
 
 //no memory     yes register
 int doTypeSix(int instruction){
-	int regno = (instruction & twoRegBuffer)/0x800;
+	int regno = (instruction & twoRegBuffer)/0x400;
 	int* curr_reg = &(reg[regno]);
 	*curr_reg = cast_up(*curr_reg);
 
