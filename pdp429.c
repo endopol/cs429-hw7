@@ -9,9 +9,10 @@
 #define upperEight 0xFF00
 #define lowerEight 0xFF
 #define oneWord 0xFFFF
-#define overflowBit 0x10000
-
 #define theSignBit 0x8000
+
+#define maxSigned = 0x7FFF
+#define minSigned = -0x8000
 
 //type1
 #define subOpcode 0x03FF
@@ -440,6 +441,11 @@ int doTypeOne(int instruction){
 	return TRUE;
 }
 
+int cast_up(int x){
+	x = (x & oneWord);	
+	X = -(overflowBit-x);
+	return X;
+}
 
 int doTypeTwo(int instruction){
     int currentPage=pc/256;
@@ -475,6 +481,9 @@ int doTypeTwo(int instruction){
 	regCode(regno, regname);
 
 	int result;
+	curr_mem = cast_up(curr_mem);
+	curr_reg = cast_up(curr_reg);
+
 	switch(instruction & typeBuffer){
 		
 		//ADD (type 2)
@@ -486,8 +495,7 @@ int doTypeTwo(int instruction){
 		//SUB (type 2)
 		case typeTwoSub:
 			sprintf(commandName, "SUB%s", regname);
-			int neg = overflowBit - curr_mem;	
-			result = curr_reg + neg;
+			result = curr_reg + curr_mem;	
 		break;			
 		
 		//MUL (type2)
@@ -547,10 +555,12 @@ int doTypeTwo(int instruction){
 		printRegs(2, regno, 3, curr_reg);
 		printRegs(1, address, 3, curr_mem);
 
-		int overflow = (result>oneWord) // Check for overflow
+		int overflow = (result > maxSigned || result < minSigned)
+
 		linkBit = linkBit ^ overflow; 	// Complement the link bit
 			
 		curr_reg = result & oneWord; 	// Truncate the result
+		curr_mem &= oneWord;
 			
 		// Print final state
 		if(overflow)
@@ -755,6 +765,10 @@ int doTypeFive(int instruction){
 		 curr_j = reg_by_num(reg_j),
 		 curr_k = reg_by_num(reg_k);
 
+	curr_i = cast_up(curr_i);
+	curr_j = cast_up(curr_j);
+	curr_k = cast_up(curr_k);
+
 	switch(instruction&typeFiveSubOpcode){
 		//MOD (type 5)
 		case typeFiveMod:
@@ -817,7 +831,7 @@ int doTypeFive(int instruction){
 	printRegs(2, reg_j, 3, curr_j);
 	printRegs(2, reg_k, 3, curr_k);
 
-	int overflow = (result>oneWord) // Check for overflow
+	int overflow = (result>maxSigned || result<minSigned); // Check for overflow
 	linkBit = linkBit ^ overflow; 	// Complement the link bit
 			
 	curr_i = result & oneWord; 	// Truncate the result
