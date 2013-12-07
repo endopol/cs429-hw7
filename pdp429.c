@@ -531,7 +531,7 @@ int doTypeTwo(int instruction){
 			sprintf(commandName, "ST%s", regname);
 			printRegs(2, regno, 3, curr_reg);
 			curr_mem = curr_reg;		
-			printRegs(2, curr_reg, 3, address);
+			printRegs(3, curr_reg, 1, address);
 		break;
 	}
 
