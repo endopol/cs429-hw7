@@ -213,8 +213,10 @@ int readObject(const char* fileName){
 	}
 
 	//first part of pc
-	if(!fread(&pc, 2, 1, input))
+	int temp[2];
+	if(!fread(temp, 1, 2, input))
 		return -4;
+	pc = temp[1] + *temp[2];
 
 	fprintf(stderr, "pc=%i\n", pc);
 
