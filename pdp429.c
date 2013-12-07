@@ -111,10 +111,8 @@
 
 
 
-int rega;
-int regb;
-int regc;
-int regd;
+
+int reg[4];
 int pc;
 int linkBit;
 int psw;
@@ -303,7 +301,7 @@ void printMem(){
 
 //return false if an error occurs true otherwise
 int operate(int instruction){
-	
+    
 	
     switch(instruction & typeBuffer){
     	
@@ -442,6 +440,102 @@ int doTypeOne(int instruction){
 	}
 	return TRUE;
 }
+
+
+int doTypeTwo(int instruction){
+    int currentPage=pc/256;
+	currentPage=currentPage*256;
+    //this turns D/I into a variable:   indirect
+    short indirect=FALSE;
+    if((instruction & bitNine)==bitNine){
+        indirect=TRUE;
+    }
+	
+    //this turns Z/C into a vaiable: onCurrPage
+    int onCurrPage=FALSE;
+    if((instruction&bitEight)==bitEight){
+        onCurrPage=TRUE;
+    }
+    
+    //this sets the memory address we are dealing with
+    int address;
+    if(indirect==TRUE){
+        time++;
+        if(onCurrPage==TRUE){
+            //indirect addressing on the current page
+            address=mem[currentPage+(instruction&lowerEightPage)];
+        }
+        else{
+            //indirect addressing on page zero
+            address=mem[(instruction&lowerEightPage)];
+        }
+    }
+    else{
+        if(onCurrPage==TRUE){
+            //direct addressing on the current page
+            address=currentPage+(instruction&lowerEightPage);
+        }
+        else{
+            //direct addressing on page zero
+            address=instruction&lowerEightPage;
+        }
+    }
+	int regno = (instruction && twoRegBuffer)/0x800;
+	int& curr_reg = reg[regno];
+	switch(instruction & typeBuffer){
+		
+		//ADD (type 2)
+		case typeTwoAdd:
+		
+		break;
+		
+		//SUB (type 2)
+		case typeTwoSub:
+		
+		break;
+		
+		//MUL (type2)
+		case typeTwoMul:
+		
+		break;
+		
+		//DIV (type 2)
+		case typeTwoDiv:
+		
+		break;
+		
+		//AND (type 2)
+		case typeTwoAnd:
+		
+		break;
+		
+		//OR (type 2)
+		case typeTwoOr:
+		
+		break;
+		
+		//XOR (type 2)
+		case typeTwoXor:
+		
+		break;
+		
+		//LD (type 2)
+		case typeTwoLd:
+		
+		break;
+		
+		//ST (type 2)
+		case typeTwoSt:
+		
+		break;
+		
+		
+	}
+	
+	
+}
+
+
 
 //I/O
 int doTypeThree(int instruction){
