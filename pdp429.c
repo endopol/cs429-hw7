@@ -426,7 +426,8 @@ int doTypeOne(int instruction){
 
 int cast_up(int x){
 	int X = (x & oneWord);	
-	X = -(overflowBit-X);
+	if(X&theSignBit) 
+		X = -(overflowBit-X);
 	return X;
 }
 
@@ -472,18 +473,21 @@ int doTypeTwo(int instruction){
 		case typeTwoAdd:
 			sprintf(commandName, "ADD%s", regname);
 			result = *curr_reg + *curr_mem;
+			time+=2;
 		break;
 	
 		//SUB (type 2)
 		case typeTwoSub:
 			sprintf(commandName, "SUB%s", regname);
 			result = *curr_reg - *curr_mem;	
+			time+=2;
 		break;			
 		
 		//MUL (type2)
 		case typeTwoMul:
 			sprintf(commandName, "MUL%s", regname);	
 			result = (*curr_reg) * (*curr_mem);
+			time+=2;
 		break;
 		
 		//DIV (type 2)
@@ -494,24 +498,28 @@ int doTypeTwo(int instruction){
 				result = overflowBit;
 			else
 				result = (*curr_reg) / (*curr_mem);
+		time+=2;
 		break;
 		
 		//AND (type 2)
 		case typeTwoAnd:
 			sprintf(commandName, "AND%s", regname);	
 			result = (*curr_reg) & (*curr_mem);
+			time+=2;
 		break;
 		
 		//OR (type 2)
 		case typeTwoOr:
 			sprintf(commandName, "OR%s", regname);	
-			result = (*curr_reg) | (*curr_mem);		
+			result = (*curr_reg) | (*curr_mem);	
+			time+=2;	
 		break;
 		
 		//XOR (type 2)
 		case typeTwoXor:
 			sprintf(commandName, "XOR%s", regname);	
 			result = (*curr_reg) ^ (*curr_mem);
+			time+=2;
 		break;
 		
 		//LD (type 2)
@@ -520,6 +528,7 @@ int doTypeTwo(int instruction){
 			printRegs(1, address, 3, *curr_mem);
 			*curr_reg = *curr_mem;
 			printRegs(3, *curr_mem, 2, regno);
+			time+=2;
 		break;
 		
 		//ST (type 2)
@@ -528,6 +537,7 @@ int doTypeTwo(int instruction){
 			printRegs(2, regno, 3, *curr_reg);
 			*curr_mem = *curr_reg;		
 			printRegs(3, *curr_reg, 1, address);
+			time+=2;
 		break;
 	}
 
@@ -634,8 +644,14 @@ int doTypeFour(int instruction){
 				pc += 1;
 				printRegs(3, pc, 1, 4);
 			}
-
+			if(indirect==TRUE){
+				strcpy(commandName,"I JMP");
+			}
+			else{
+				strcpy(commandName,"JMP");
+			}
 			time+=3;
+			pc++;
 		break;
 		
 		
@@ -748,7 +764,7 @@ int doTypeFive(int instruction){
 	int* curr_i = reg_by_num(reg_i);
 	int curr_j = *(reg_by_num(reg_j));
 	int curr_k = *(reg_by_num(reg_k));
-
+	
 	curr_j = cast_up(curr_j);
 	curr_k = cast_up(curr_k);
 
@@ -757,11 +773,11 @@ int doTypeFive(int instruction){
 		//MOD (type 5)
 		case typeFiveMOD:
 			strcpy(commandName, "MOD");
-
+			//fprintf(stderr,"J: 0x%04X    K: 0x%04X    ",curr_j,curr_k);
 			if(curr_k==0)
 				result = overflowBit;
 			else
-				result = curr_j % curr_k;
+				result = (curr_j) % (curr_k);
 		break;
 
 		//ADD (type 5)
