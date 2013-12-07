@@ -112,7 +112,7 @@
 #define typeFive 0xE000
 #define typeSix 0xF000
 
-
+FILE* input;
 int reg[4];
 int pc;
 int linkBit;
@@ -145,7 +145,7 @@ void main( int argc, const char* argv[] ){
 	    	verbose=TRUE;
 			indexOfFile++;
 	    }
-		int check=readObject(argv[indexOfFile]);
+		int check=Load_Binary_Object_File(argv[indexOfFile]);
 		switch(check){
 			case -1:
 				printf("\nUndefined error\n");
@@ -168,7 +168,6 @@ void main( int argc, const char* argv[] ){
 		}
 		printMem();
 		return;
-
 		short keepOperating=TRUE;
 		int pcBefore;
 		int theInst;
@@ -207,6 +206,7 @@ int read_byte(FILE* input){
 	fread(&temp, 1, 1, input);
 	return temp;
 }
+
 
 
 //RETURNS 0 if success  -1 undefined error   -2 if file not found error    -6 if OBJG isnt at the begining
@@ -256,6 +256,61 @@ int readObject(const char* fileName){
 	return 0;
 }
 
+int get2(void)
+{
+    int c1 = getc(input);
+    int c2 = getc(input);
+    if ((c1 == EOF) || (c2 == EOF))
+        {
+            fprintf(stderr, "Premature EOF\n");
+            exit(1);
+        }
+    int n = ((c1 & 0xFF) << 8) | (c2 & 0xFF);
+    return(n);
+}
+
+void Store_Memory(int addr, int value)
+{
+    mem[addr] = value & oneWord;
+}
+
+int Load_Binary_Object_File(char* name)
+{
+    input=fopen(name,"r");
+	if(input==0){
+		return -2;
+		//File not found error
+	}
+    int c1 = getc(input);
+    int c2 = getc(input);
+    int c3 = getc(input);
+    int c4 = getc(input);
+
+    if ((c1 != 'O') || (c2 != 'B') || (c3 != 'J') || (c4 != 'G'))
+        {
+            fprintf(stdout, "First four bytes are not OBJ8: ");
+			
+            exit(1);
+        }
+
+    sp = get2();
+
+    int n;
+    while ((n = getc(input)) != EOF)
+        {
+            n = n - 1;
+            int addr = get2(); n -= 2;
+            while (n > 0)
+                {
+                    int data = get2(); n -= 2;            
+                    Store_Memory(addr, data);
+                    addr += 1;
+                }
+        }
+		time=0;
+		
+    return(0);
+}
 
 
 void printMem(){
