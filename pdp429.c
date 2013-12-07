@@ -833,6 +833,8 @@ int doTypeFive(int instruction){
 int doTypeSix(int instruction){
 	int regno = (instruction && twoRegBuffer)/0x800;
 	int& curr_reg = reg[regno];
+	char* regname[10];
+	regCode(regno, regname);
 	int skipSM=-1;
 	int skipSZ=-1;
 	int skipSNL=-1;
@@ -844,6 +846,7 @@ int doTypeSix(int instruction){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"SM");
+		strcat(commandName,regname);
 		if(curr_reg&theSignBit==theSignBit){
 			skipSM=TRUE;
 		}
@@ -859,6 +862,7 @@ int doTypeSix(int instruction){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"SZ");
+		strcat(commandName,regname);
 		if(curr_reg==0){
 			skipSZ=TRUE;
 		}
@@ -898,6 +902,7 @@ int doTypeSix(int instruction){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"CL");
+		strcat(commandName,regname);
 		curr_reg=0;
 		printRegs(3,curr_reg,2,regno);
 	}
@@ -918,7 +923,11 @@ int doTypeSix(int instruction){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"CM");
-		
+		strcat(commandName,regname);
+		printRegs(2,regno,3,curr_reg);
+		curr_reg=~curr_reg;
+		curr_reg=curr_reg&oneWord;
+		printRegs(3,curr_reg,2,regno);
 	}
 	
 	//cml
@@ -927,7 +936,9 @@ int doTypeSix(int instruction){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"CML");
-		
+		printRegs(2,8,3,linkBit);
+		linkBit^=1;
+		printRegs(3,linkBit,2,8);
 	}
 	
 	//dc*
@@ -936,8 +947,11 @@ int doTypeSix(int instruction){
 			strcat(commandName," ");
 		}
 		strcat(commandName,"DC");
+		strcat(commandName,regname);
+		printRegs(2,regno,3,curr_reg);
 		
 		
+		printRegs(3,curr_reg,2,regno);
 	}
 	
 	//ic*
@@ -945,23 +959,28 @@ int doTypeSix(int instruction){
 		if(strlen(commandName)>0){
 			strcat(commandName," ");
 		}
-		strcat(commandName,"IC");
+		strcat(commandName,"IN");
+		strcat(commandName,regname);
+		printRegs(2,regno,3,curr_reg);
 		
+		
+		printRegs(3,curr_reg,2,regno);
 	}
 	
 	time++;
 	pc++;
 	if((flip==TRUE) && (skipSM==FALSE || skipSZ==FALSE || skipSNL==FALSE)){
 		pc++;
+		printRegs(3,pc,2,4);
 	}
 	else if((flip==FALSE) && (skipSM==TRUE || skipSZ==TRUE || skipSNL==TRUE)){
 		pc++;
+		printRegs(3,pc,2,4);
 	}
 	if(strlen(commandName)==0){
 		strcpy(commandName,"NOP");
 	}
 	return TRUE;
-	
 }
 
 //do i need to malloc?
