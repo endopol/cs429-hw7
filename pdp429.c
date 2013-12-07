@@ -11,6 +11,8 @@
 #define oneWord 0xFFFF
 #define overflowBit 0x10000
 
+#define theSignBit 0x8000
+
 //type1
 #define subOpcode 0x03FF
 #define upperSix 0xFC00
@@ -829,6 +831,136 @@ int doTypeFive(int instruction){
 
 //no memory     yes register
 int doTypeSix(int instruction){
+	int regno = (instruction && twoRegBuffer)/0x800;
+	int& curr_reg = reg[regno];
+	int skipSM=-1;
+	int skipSZ=-1;
+	int skipSNL=-1;
+	int flip=FALSE;
+	
+	//sm*
+	if(instruction&bit9==bit9){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"SM");
+		if(curr_reg&theSignBit==theSignBit){
+			skipSM=TRUE;
+		}
+		else{
+			skipSM=FALSE;
+		}
+		printRegs(2,regno,3,curr_reg);
+	}
+	
+	//sz*
+	if(instruction&bit8==bit8){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"SZ");
+		if(curr_reg==0){
+			skipSZ=TRUE;
+		}
+		else{
+			skipSZ=FALSE;
+		}
+		printRegs(2,regno,3,curr_reg);
+	}
+	
+	//snl
+	if(instruction&bit7==bit7){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		if(linkBit!=0){
+			skipSNL=TRUE;
+		}
+		else{
+			skipSNL=FALSE;
+		}
+		strcat(commandName,"SNL");
+		printRegs(2,8,3,linkBit);
+	}
+	
+	//rss
+	if(instruction&bit6==bit6){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"RSS");
+		flip=TRUE;
+	}
+	
+	//cl*
+	if(instruction&bit5==bit5){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"CL");
+		curr_reg=0;
+		printRegs(3,curr_reg,2,regno);
+	}
+	
+	//cll
+	if(instruction&bit4==bit4){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"CLL");
+		linkBit=0;
+		printRegs(3,linkBit,2,8);
+	}
+	
+	//cm*
+	if(instruction&bit3==bit3){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"CM");
+		
+	}
+	
+	//cml
+	if(instruction&bit2==bit2){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"CML");
+		
+	}
+	
+	//dc*
+	if(instruction&bit1==bit1){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"DC");
+		
+		
+	}
+	
+	//ic*
+	if(instruction&bit0==bit0){
+		if(strlen(commandName)>0){
+			strcat(commandName," ");
+		}
+		strcat(commandName,"IC");
+		
+	}
+	
+	time++;
+	pc++;
+	if((flip==TRUE) && (skipSM==FALSE || skipSZ==FALSE || skipSNL==FALSE)){
+		pc++;
+	}
+	else if((flip==FALSE) && (skipSM==TRUE || skipSZ==TRUE || skipSNL==TRUE)){
+		pc++;
+	}
+	if(strlen(commandName)==0){
+		strcpy(commandName,"NOP");
+	}
+	return TRUE;
 	
 }
 
