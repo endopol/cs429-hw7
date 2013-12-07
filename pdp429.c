@@ -12,8 +12,8 @@
 #define theSignBit 0x8000
 #define overflowBit 0x10000
 
-#define maxSigned = 0x7FFF
-#define minSigned = -0x8000
+#define maxSigned  0x7FFF
+#define minSigned -0x8000
 
 //type1
 #define subOpcode 0x03FF
@@ -401,7 +401,7 @@ int doTypeOne(int instruction){
 		
 		//HLT
 		case 1:
-		printRegs(2,5,3,psw);
+		printRegs(2, 5, 3, psw);
 		if((psw&bitZero)==bitZero){
 			psw--;
 		}
@@ -484,7 +484,6 @@ int doTypeTwo(int instruction){
 	*curr_reg = cast_up(*curr_reg);
 
 	switch(instruction & typeBuffer){
-		
 		//ADD (type 2)
 		case typeTwoAdd:
 			sprintf(commandName, "ADD%s", regname);
@@ -847,7 +846,7 @@ int doTypeSix(int instruction){
 	int* curr_reg = &(reg[regno]);
 	*curr_reg = cast_up(*curr_reg);
 
-	char* regname[10];
+	char regname[10];
 	regCode(regno, regname);
 	int skipSM=-1;
 	int skipSZ=-1;
@@ -965,9 +964,9 @@ int doTypeSix(int instruction){
 		printRegs(2,regno,3,*curr_reg);
 		
 		*curr_reg -=1;
-		if(curr_reg<minSigned)
+		if(*curr_reg<minSigned)
 			linkBit ^= 1;
-		printRegs(3, linkBit, 2, 8)
+		printRegs(3, linkBit, 2, 8);
 		
 		printRegs(3,*curr_reg,2,regno);
 	}
@@ -1037,7 +1036,6 @@ void regCode(int regNum, char* ret){
 	else{
 		strcpy(ret, "???");
 	}
-	return ret;
 }
 
 
