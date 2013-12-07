@@ -125,7 +125,18 @@ int time;
 char regStr[300];
 char commandName[300];
 
+int readObject(const char* fileName);
+void printMem();
+int operate(int instruction);
+int doTypeOne(int instruction);
+int cast_up(int x);
+int doTypeTwo(int instruction);
+int doTypeThree(int instruction);
+int doTypeFour(int instruction);
+int doTypeFive(int instruction);
+int doTypeSix(int instruction);
 void regCode(int regNum, char* ret);
+void printRegs(int val1Type, int val1, int val2Type, int val2);
 
 void main( int argc, const char* argv[] ){
     if(argc>=2){
@@ -182,7 +193,7 @@ void main( int argc, const char* argv[] ){
 
 //RETURNS 0 if success  -1 undefined error   -2 if file not found error    -6 if OBJG isnt at the begining
 //-3 step isnt 3 when we get to end of a set      -4 premature EOF           -5 bytes read exceeded max bytes
-int readObject(char* fileName){
+int readObject(const char* fileName){
     FILE* input=fopen(fileName,"r");
 	if(input==0){
 		return -2;
