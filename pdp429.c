@@ -607,33 +607,26 @@ int doTypeFour(int instruction){
     }
 	
     //this turns Z/C into a vaiable: onCurrPage
-    int onCurrPage=FALSE;
-    if((instruction&bitEight)==bitEight){
-        onCurrPage=TRUE;
-    }
-    
+    int currentPage=pc/256;
+	currentPage=currentPage*256;
+    //this turns D/I into a variable:   indirect
+    int indirect=((instruction & bitNine)==bitNine);
+   
+    //this turns Z/C into a vaiable: onCurrPage
+    int onCurrPage=((instruction&bitEight)==bitEight);
+   
     //this sets the memory address we are dealing with
-    int address;
+    int address = instruction&lowerEightPage;
+
+	// Deal with Z/C
+	if(onCurrPage==TRUE)
+		address+=currentPage;
+	
+	// Deal with D/I
     if(indirect==TRUE){
         time++;
-        if(onCurrPage==TRUE){
-            //indirect addressing on the current page
-            address=mem[currentPage+(instruction&lowerEightPage)];
-        }
-        else{
-            //indirect addressing on page zero
-            address=mem[(instruction&lowerEightPage)];
-        }
-    }
-    else{
-        if(onCurrPage==TRUE){
-            //direct addressing on the current page
-            address=currentPage+(instruction&lowerEightPage);
-        }
-        else{
-            //direct addressing on page zero
-            address=instruction&lowerEightPage;
-        }
+		printRegs(1, address, 3, mem[address]);
+        address=mem[address];
     }
 	int regno = (instruction && twoRegBuffer)/0x800;
 	int& curr_reg = reg[regno];
