@@ -549,6 +549,8 @@ int doTypeTwo(int instruction){
 			printRegs(3, linkBit, 2, 8);
 		printRegs(3, *curr_reg, 2, regno);
 	}
+	pc++;
+	return TRUE;
 }
 
 
@@ -806,6 +808,7 @@ int doTypeFive(int instruction){
 			strcpy(commandName, "XOR");
 			result = curr_j ^ curr_k;
 		break;
+		
 	}
 
 	// Print initial state
@@ -821,6 +824,9 @@ int doTypeFive(int instruction){
 	if(overflow)
 		printRegs(3, linkBit, 2, 8);
 	printRegs(3, *curr_i, 2, reg_i);
+	time++;
+	pc++;
+	return TRUE;
 }
 
 
