@@ -422,7 +422,7 @@ int doTypeOne(int instruction){
 		case 2:
 		strcpy(commandName,"RET");
 		printRegs(2,6,3,sp);
-		if(sp==0xFFF){
+		if(sp==0xFFFF){
 			printf("stack underflow error");
 			return FALSE;
 		}
