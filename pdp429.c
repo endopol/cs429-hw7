@@ -166,6 +166,9 @@ void main( int argc, const char* argv[] ){
 				printf("\nOBJG not present at begining\n");
 				break;
 		}
+		printMem();
+		return;
+
 		short keepOperating=TRUE;
 		int pcBefore;
 		int theInst;
@@ -213,9 +216,10 @@ int readObject(const char* fileName){
 	if(!fread(&pc, 2, 1, input))
 		return -4;
 
+	fprintf(stderr, "pc=%i\n", pc);
+
 	int step=1;
 	int bytesRead=0;
-	int currentAddress;
 	int maxBytes = 65536;
 	
 	int blockSize = 0;
@@ -225,7 +229,7 @@ int readObject(const char* fileName){
 		valid = valid && fread(&blockSize, 1, 1, input);
 	   	valid = valid && fread(&startingAddress, 2, 1, input);	
 
-		fprintf(stderr, "%i\n", blockSize);
+		fprintf(stderr, "blocksize=%i, start_address=%i\n", blockSize, startingAddress);
 		valid = valid && fread(mem+startingAddress, 2, (blockSize-3)/2, input); 	
 	}while(valid);
 	psw=1;
