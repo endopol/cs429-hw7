@@ -50,9 +50,9 @@
 
 
 //type5
-#define regK
-#define regJ
-#define regI
+#define regK 0x0007 // i.e. ...000000111
+#define regJ 0x0038 // i.e. ...000111000
+#define regI 0x01C0 // i.e. ...111000000
 #define typeFiveSubOpcode 0x0E00
 #define typeFiveMOD 0x0000
 #define typeFiveADD 0x0200
@@ -496,8 +496,12 @@ int doTypeTwo(int instruction){
 		
 		//DIV (type 2)
 		case typeTwoDiv:
-			sprintf(commandName, "DIV%s", regname);	
-			result = curr_reg / curr_mem;
+			sprintf(commandName, "DIV%s", regname);
+			
+			if(curr_mem==0)
+				result = overflowBit;
+			else
+				result = curr_reg / curr_mem;
 		break;
 		
 		//AND (type 2)
@@ -514,7 +518,7 @@ int doTypeTwo(int instruction){
 		
 		//XOR (type 2)
 		case typeTwoXor:
-			sprintf(commandName, "AND%s", regname);	
+			sprintf(commandName, "XOR%s", regname);	
 			result = curr_reg ^ curr_mem;
 		break;
 		
@@ -537,7 +541,6 @@ int doTypeTwo(int instruction){
 
 	// Extra handling for arithmetic ops
 	if((instruction & typeBuffer) < typeTwoLd){
-
 		// Print initial state
 		printRegs(2, regno, 3, curr_reg);
 		printRegs(1, address, 3, curr_mem);
@@ -597,15 +600,7 @@ int doTypeThree(int instruction){
 
 
 //yes memory    no register
-int doTypeFour(int instruction){
-    int currentPage=pc/256;
-	currentPage=currentPage*256;
-    //this turns D/I into a variable:   indirect
-    short indirect=FALSE;
-    if((instruction & bitNine)==bitNine){
-        indirect=TRUE;
-    }
-	
+int doTypeFour(int instruction){	
     //this turns Z/C into a vaiable: onCurrPage
     int currentPage=pc/256;
 	currentPage=currentPage*256;
@@ -628,14 +623,23 @@ int doTypeFour(int instruction){
 		printRegs(1, address, 3, mem[address]);
         address=mem[address];
     }
-	int regno = (instruction && twoRegBuffer)/0x800;
-	int& curr_reg = reg[regno];
-	
+
+	int& curr_mem = mem[address];
+
 	switch(instruction&upperSixOpcode){
 		
 		//ISZ
 		case typeFourISZ:
-		time+=3;
+			printRegs(1, address, 3, curr_mem);   
+			curr_mem += 1;
+			printRegs(3, curr_mem, 1, address);
+			
+			if(curr_mem&oneWord==0){
+				pc += 1;
+				printRegs(3, pc, 1, 4);
+			}
+
+			time+=3;
 		break;
 		
 		
@@ -722,10 +726,104 @@ int doTypeFour(int instruction){
 	return TRUE;
 }
 
+int& reg_by_num(int regnum){
+	if(regnum<=4) // first four registers
+		return reg[regnum];
+
+	if(regnum==4)
+		return pc;
+
+	if(regnum==5)
+		return psw;
+
+	if(regnum==6)
+		return sp;
+
+	if(regnum==7)
+		return spl;
+}
 
 // yes register   yes register
 int doTypeFive(int instruction){
+	int reg_k = instruction & regK,
+		reg_j = (instruction & regJ)/8,
+		reg_i = (instruction & regI)/64;
+
+	int& curr_i = reg_by_num(reg_i),
+		 curr_j = reg_by_num(reg_j),
+		 curr_k = reg_by_num(reg_k);
+
+	switch(instruction&typeFiveSubOpcode){
+		//MOD (type 5)
+		case typeFiveMod:
+			strcpy(commandName, "MOD");
+
+			if(curr_k==0)
+				result = overflowBit;
+			else
+				result = curr_j % curr_k;
+		break;
+
+		//ADD (type 5)
+		case typeFiveAdd:
+			strcpy(commandName, "ADD");
+			result = curr_j + curr_k;
+		break;
 	
+		//SUB (type 5)
+		case typeFiveSub:
+			strcpy(commandName, "SUB");
+			int neg = overflowBit - curr_k;	
+			result = curr_j + neg;
+		break;			
+		
+		//MUL (type 5)
+		case typeFiveMul:
+			strcpy(commandName, "MUL");
+			result = curr_j * curr_k;
+		break;
+		
+		//DIV (type 5)
+		case typeFiveDiv:
+			strcpy(commandName, "DIV");			
+			if(curr_k==0)
+				result = overflowBit;
+			else
+				result = curr_j / curr_k;
+		break;
+		
+		//AND (type 5)
+		case typeFiveAnd:
+			strcpy(commandName, "AND");
+			result = curr_j & curr_k;
+		break;
+		
+		//OR (type 5)
+		case typeFiveOr:
+			strcpy(commandName, "OR");
+			result = curr_j | curr_k;		
+		break;
+		
+		//XOR (type 5)
+		case typeFiveXor:
+			strcpy(commandName, "XOR");
+			result = curr_j ^ curr_k;
+		break;
+	}
+
+	// Print initial state
+	printRegs(2, reg_j, 3, curr_j);
+	printRegs(2, reg_k, 3, curr_k);
+
+	int overflow = (result>oneWord) // Check for overflow
+	linkBit = linkBit ^ overflow; 	// Complement the link bit
+			
+	curr_i = result & oneWord; 	// Truncate the result
+			
+	// Print final state
+	if(overflow)
+		printRegs(3, linkBit, 2, 8);
+	printRegs(3, curr_i, 2, reg_i);
 }
 
 
